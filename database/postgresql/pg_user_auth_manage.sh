@@ -37,24 +37,30 @@ authorization(){
   read -p "请输入你要授权的数据库：" DATABASE
   psql -h ${DB_HOST} -U postgres -qAt -c "\dn" ${DATABASE} | awk -F '|' '{print $1}'
   echo -e "\n"
-  read -p "请输入你要授权数据库的 schema: " SCHEMA
+  read -p "请输入你要授权数据库的 schema 以空格区分多个 schema: " SCHEMAS
   echo -e "\n"
   read -p "1、授予该库所有权限; 2、授予改库只读权限：" AUTH_NUM
   case ${AUTH_NUM} in
     1)
-      psql -h ${DB_HOST} -U postgres -qAt -c "GRANT CONNECT ON DATABASE ${DATABASE} TO ${USER_NAME};"
-      psql -h ${DB_HOST} -U postgres -qAt -c "GRANT USAGE ON SCHEMA ${SCHEMA} TO ${USER_NAME};" ${DATABASE}
-      psql -h ${DB_HOST} -U postgres -qAt -c "GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA ${SCHEMA} TO ${USER_NAME};" ${DATABASE}
-      psql -h ${DB_HOST} -U postgres -qAt -c "GRANT SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA ${SCHEMA} TO ${USER_NAME};" ${DATABASE}
-      psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES TO ${USER_NAME};" ${DATABASE}
-      psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} GRANT SELECT, UPDATE on SEQUENCES to ${USER_NAME};" ${DATABASE}
+      for SCHEMA in ${SCHEMAS};
+	do
+          psql -h ${DB_HOST} -U postgres -qAt -c "GRANT CONNECT ON DATABASE ${DATABASE} TO ${USER_NAME};"
+          psql -h ${DB_HOST} -U postgres -qAt -c "GRANT USAGE ON SCHEMA \"${SCHEMA}\" TO ${USER_NAME};" ${DATABASE}
+          psql -h ${DB_HOST} -U postgres -qAt -c "GRANT SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA \"${SCHEMA}\" TO ${USER_NAME};" ${DATABASE}
+          psql -h ${DB_HOST} -U postgres -qAt -c "GRANT SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA \"${SCHEMA}\" TO ${USER_NAME};" ${DATABASE}
+          psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA \"${SCHEMA}\" GRANT SELECT, UPDATE, INSERT, DELETE ON TABLES TO ${USER_NAME};" ${DATABASE}
+          psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA \"${SCHEMA}\" GRANT SELECT, UPDATE on SEQUENCES to ${USER_NAME};" ${DATABASE}
+	done
       echo "授权成功！"
       ;;
     2)
-      psql -h ${DB_HOST} -U postgres -qAt -c "GRANT CONNECT ON DATABASE ${DATABASE} TO ${USER_NAME};"
-      psql -h ${DB_HOST} -U postgres -qAt -c "grant usage on schema ${SCHEMA} to ${USER_NAME};" ${DATABASE}
-      psql -h ${DB_HOST} -U postgres -qAt -c "grant select on all tables in schema ${SCHEMA} to ${USER_NAME};" ${DATABASE}
-      psql -h ${DB_HOST} -U postgres -qAt -c "alter default privileges in schema ${SCHEMA} grant select on tables to ${USER_NAME};" ${DATABASE}
+      for SCHEMA in ${SCHEMAS};
+        do
+          psql -h ${DB_HOST} -U postgres -qAt -c "GRANT CONNECT ON DATABASE ${DATABASE} TO ${USER_NAME};"
+          psql -h ${DB_HOST} -U postgres -qAt -c "grant usage on schema \"${SCHEMA}\" to ${USER_NAME};" ${DATABASE}
+          psql -h ${DB_HOST} -U postgres -qAt -c "grant select on all tables in schema \"${SCHEMA}\" to ${USER_NAME};" ${DATABASE}
+          psql -h ${DB_HOST} -U postgres -qAt -c "alter default privileges in schema \"${SCHEMA}\" grant select on tables to ${USER_NAME};" ${DATABASE}
+	done
       echo "授权成功！"
       ;;
     *)
@@ -75,12 +81,12 @@ delete_user(){
       ALL_SCHEMAS=`psql -h ${DB_HOST} -U postgres -qAt -c "SELECT schema_name FROM information_schema.schemata WHERE schema_name != 'information_schema' AND schema_name != 'pg_toast' AND schema_name != 'pg_catalog';" ${DATABASE} | egrep -v "pg_toast_temp|pg_temp"`
 	for SCHEMA in ${ALL_SCHEMAS};
 	  do
-	    echo "正在执行的 schema ${SCHEMA}"
-            psql -h ${DB_HOST} -U postgres -qAt -c "REVOKE USAGE ON SCHEMA ${SCHEMA} FROM ${USER_NAME};" ${DATABASE}
-            psql -h ${DB_HOST} -U postgres -qAt -c "REVOKE SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA ${SCHEMA} FROM ${USER_NAME};" ${DATABASE}
-            psql -h ${DB_HOST} -U postgres -qAt -c "REVOKE SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA ${SCHEMA} FROM ${USER_NAME};" ${DATABASE}
-            psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} REVOKE SELECT, UPDATE, INSERT, DELETE ON TABLES FROM ${USER_NAME};" ${DATABASE}
-            psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA ${SCHEMA} REVOKE SELECT, UPDATE ON SEQUENCES FROM ${USER_NAME};" ${DATABASE}
+	    echo "正在执行的 schema \"${SCHEMA}\""
+            psql -h ${DB_HOST} -U postgres -qAt -c "REVOKE USAGE ON SCHEMA \"${SCHEMA}\" FROM ${USER_NAME};" ${DATABASE}
+            psql -h ${DB_HOST} -U postgres -qAt -c "REVOKE SELECT, UPDATE, INSERT, DELETE ON ALL TABLES IN SCHEMA \"${SCHEMA}\" FROM ${USER_NAME};" ${DATABASE}
+            psql -h ${DB_HOST} -U postgres -qAt -c "REVOKE SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA \"${SCHEMA}\" FROM ${USER_NAME};" ${DATABASE}
+            psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA \"${SCHEMA}\" REVOKE SELECT, UPDATE, INSERT, DELETE ON TABLES FROM ${USER_NAME};" ${DATABASE}
+            psql -h ${DB_HOST} -U postgres -qAt -c "ALTER DEFAULT PRIVILEGES IN SCHEMA \"${SCHEMA}\" REVOKE SELECT, UPDATE ON SEQUENCES FROM ${USER_NAME};" ${DATABASE}
 	  done
     done
   psql -h ${DB_HOST} -U postgres -qAt -c "DROP USER IF EXISTS ${USER_NAME}"
